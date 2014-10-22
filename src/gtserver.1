@@ -1,0 +1,301 @@
+.\" gtserver man page
+.if !\n(.g \{\
+.	if !\w|\*(lq| \{\
+.		ds lq ``
+.		if \w'\(lq' .ds lq "\(lq
+.	\}
+.	if !\w|\*(rq| \{\
+.		ds rq ''
+.		if \w'\(rq' .ds rq "\(rq
+.	\}
+.\}
+.ie t .ds Tx \s-1T\v'.4n'\h'-.1667'E\v'-.4n'\h'-.125'X\s0
+. el  .ds Tx TeX
+.de Id
+. ds Yr \\$4
+. substring Yr 0 3
+. ds Mn \\$4
+. substring Mn 5 6
+. ds Dy \\$4
+. substring Dy 8 9
+. \" ISO 8601 date, complete format, extended representation
+. ds Dt \\*(Yr-\\*(Mn-\\*(Dy
+..
+.TH gtserver 1 
+.hy 0
+.
+.SH NAME 
+gtserver \- transfer genomic data reliably across a network
+.SH SYNOPSIS
+.B gtserver 
+.I path
+.B -q
+.I work-queue
+.B -c 
+.I cred
+.B --security-api 
+.I signing-URI
+[
+.B --foreground 
+|
+.B --pidfile
+.I Pid-File
+]
+.SH DESCRIPTION
+.B GeneTorrent
+is a suite of file transfer applications designed for the optimal
+transfer of genomic data across a computer network.  File transfers
+using GeneTorrent are designed to be authenticated, secure, reliable,
+and efficient.
+.PP
+GeneTorrent has 3 applications: gtupload, gtdownload, and gtserver.
+The upload application is used to send files to the repository.
+The download application is used to retrieve files from the repository.
+The server application is used within the repository to create GeneTorrent
+server instances that deliver data to download actors.
+.PP
+This man page describes 
+.B gtserver 
+(the GeneTorrent server application).
+.SH OPTIONS
+.TP
+.BI "path"
+Required.
+.I path
+is the absolute or relative path to the directory under which the data
+files being shared are to be found.  Note that UUID is always be added
+to
+.I path\fR,\fP
+so data files will be found at 
+.I path\fR/\fPUUID\fR.\fP
+.TP
+.BI \-q " work-queue" "\fR,\fP \-\^\-queue" " work-queue"
+Required.  
+.I work-queue
+is the absolute or relative path to a directory where this server
+instance will look for .gto files to begin sharing content.
+.TP
+.BI \-\^\-security-api " signing-URI"
+Required.  
+.I signing-URI
+is a fully-qualified URI which will sign CSRs for this server instance.
+.TP
+.BI \-\^\-foreground
+Optional.  Run in the foreground (do not deamonize).
+.TP
+.BI \-\^\-pidfile " Pid-File"
+Optional (unless
+.I \-\^\-foreground
+is present, then ignored).
+.I Pid-File
+Full path and filename of the process's pid.  Default value:  /var/run/gtserver/gtserver.pid  This must match program_PIDFILE value in the init.d script of used if the init.d script is to be used.
+.TP
+.BR \-h ", " \-\^\-help
+Print a usage message briefly summarizing these command-line options, then exit.
+.TP
+.B \-\^\-version
+Print the version number of
+.B GeneTorrent
+to the standard output stream.  This version number should be included
+in all bug reports.
+.TP
+.BI "\fR\fP \-\^\-allowed-modes" " [ALL|UPLOAD|DOWNLOAD|SERVER]"
+In a restricted config file (see CONFIGURATION FILES below), this parameter
+contains the modes in which GeneTorrent applications may operate
+on this system.  This option can take multiple modes in a comma- or
+colon-separated list.  Specifying ALL (the default) allows all
+applications to run.
+.TP
+.BI "\fR\fP \-\^\-allowed-servers" " IP ranges"
+Specify a list of IP addresses or IP address ranges that the GeneTorrent
+applications may use for external communications (actors, transactors,
+and web services).  Attempts to communicate with services outside of these
+allowed IP address ranges will be denied.
+
+IP addresses and ranges are given in dotted-decimal notation.  Entries
+in the list are delimited by colon or comma characters.  Ranges are
+given as dash-delimited IP address ranges.
+.TP
+.BI \-b " address" "\fR,\fP \-\^\-bind-ip" " address"
+The IP address for GeneTorrent to bind.  Default is to bind all
+addresses on the system.
+.TP
+.BI \-c " credential" "\fR,\fP \-\^\-credential-file" " credential"
+Required for all applications, unless you are directly passing a .gto file to
+the -d option.
+.I credential
+is the absolute or relative path to the file containing the
+access credentials (security token) previously received from the
+repository.  Alternatively,
+.I credential
+may be a  valid URI indicating where the credential resides on a server
+accessible via HTTP, HTTPS, FTP, or FTPS.
+.TP
+.BI \-C " confdir" "\fR,\fP \-\^\-config-dir" " confdir"
+Deprecated.  Please use \-R or \-\-resource-dir.
+.TP
+.BI \-\^\-config-file " configuration-file"
+Specifies the absolute or relative path to a configuration file from
+which to read program options.  (See below for format.) Virtually
+every option that can be specified on the command line can also be
+specified in the configuration file.  Options present on the command
+line will override the contents of the configuration file.
+.TP
+.BI "\fR\fP \-\^\-disallow-user-config"
+In a restricted config file (see CONFIGURATION FILES below), this parameter
+specifies that GeneTorrent will not allow users to specify a config
+file on the command line.
+.TP
+.BI \-e " address" "\fR,\fP \-\^\-advertised-ip" " address"
+The IP address to advertise to the transactor.  This option is useful
+when this actor is running behind a NAT firewall and the publicly
+exposed IP address is not the same as the actual IP address.  The
+default is to advertise the IP address of the host's default route, or
+the address specified with the -b option.
+.TP
+.BI \-f " port" "\fR,\fP \-\^\-advertised-port" " port"
+The first port to advertise to the transactor.  This option is useful
+when this actor is running behind a NAT firewall and the publicly
+exposed ports are not the same as the ports actually bound.  The range
+of advertised ports will start at the port number specified in this
+option, so for instance if 9 ports are configured, then the advertised
+ports will run from 
+.IR port " to " port "+8."
+The default is to advertise the ports that are actually used.
+.TP
+.BI \-i " startPort\fR[:\fPendPort\fR]\fP" "\fR,\fP \-\^\-internal-port" " startPort\fR[:\fPendPort\fR]\fP"
+Specifies the range of ports actually used by GeneTorrent.  By default
+these ports are also advertised externally unless the -f option is
+used.  If an endPort is not specified, 9 ports will be configured, so
+.IR endPort " = " startPort " + 8."
+The default is to use ports 20892 through 20900.
+.TP
+.BI \-k " minutes" "\fR,\fP \-\^\-inactivity-timeout" " minutes"
+Specifies a duration of inactivity in minutes after
+which GeneTorrent, in the download or upload application, will abort file
+transfers and exit.  The activity measured to make this determination
+is actual payload data transfer over the GeneTorrent protocol.  The
+default behavior is to never timeout, which is the recommended
+setting.  When using this setting, it is recommended that it be set
+for 40 or more minutes.
+.TP
+.BI \-l " destination\fR[:\fPverbosity\fR]\fP" "\fR,\fP \-\^\-log" " destination\fR[:\fPverbosity\fR]\fP"
+Specifies the destination of a log file and a verbosity level.
+Possible values for the destination include "none", "stdout",
+"stderr", "syslog", or a filename; the log output will be directed to
+the destination specified.  Possible values for verbosity include (in
+order of increasing volume of messages) "standard", "verbose", or
+"full"; standard is the default.  The default behavior is no logging
+if this parameter is not specified.
+.TP
+.BI \-R " resourcedir" "\fR,\fP \-\^\-resource-dir" " resourcedir"
+Specify an absolute or relative path to the GeneTorrent static
+resources directory.  This directory should contain \fBdhparam.pem\fP.
+.TP
+.BI \-\^\-ssl-no-verify-ca
+Specifies that GeneTorrent should not verify the SSL certificates
+presented by web services.  This is not recommended.
+.TP
+.BI \-v "\fR,\fP " \-\^\-verbose " level"
+Controls the level of on-screen progress reporting to stdout.  By
+default GeneTorrent offers no status information unless an error
+occurs.  
+
+The long and short forms of this option work slightly differently.
+With the short form, you can receive summary progress information by
+specifying a single -v, or detailed progress information by specifying
+-vv (e.g., two -v's).  With the long form, you specify a numeric level
+between 1 and 2; for instance, use --verbose=1 for summary progress
+information.
+.TP
+.BR \-t ", " \-\^\-timestamps
+Specifies that the on-screen progress messages (controlled by the -v
+flag, above) should include a timestamp.  This is primarily useful
+when these messages are being redirected to a file for later review.
+.TP
+.BR \-\^\-null\-storage
+Enable null storage implementation. This is a command line only option
+and is not available in the configuration file.
+
+A virtual storage device intended for a receive-only peer which throws away all
+data received (rather than writing to disk).  Of course this means a receive
+peer running in this mode cannot turn around and share any blocks it has
+received.
+
+This mode disables hash checking of the downloaded pieces so there is
+no handling of currupt pieces, every piece downloaded is assumed
+correct.
+
+This mode can not be used to transmit files.
+
+Use this mode when performance testing the client side of download
+transfers.
+
+Can not be used in conjunction with \fB\-\^\-zero\-storage\fP for a
+given invocation of GeneTorrent.
+
+In some cases it makes sense to use \fB\-\^\-zero\-storage\fP on the
+server side and \fB\-\^\-null\-storage\fP on the download client side.
+.TP
+.BR \-\^\-zero\-storage
+Enable zero storage implementation. This is a command line only option
+and is not available in the configuration file.
+
+A virtual storage device intended for a transmit or receive peer which throws
+away all data received (rather than writing to disk). Transmitted data will
+always consist of a stream of zeros. Of course this means the receive peer
+running in this mode cannot turn around and share any blocks it has received.
+
+The transmitter of the data must have a precomputed torrent file which hashes
+properly since GeneTorrent will not be able to create a torrent file (.gto
+file) when run in zero storage mode.
+
+Can not be used in conjunction with \fB\-\^\-null\-storage\fP for a
+given invocation of GeneTorrent.
+.SH CONFIGURATION FILES
+All options that can be specified on the command line can also be
+specified in a user configuration file, which is specified on the command line
+via the
+.B --config-file
+option.  A configuration file is a simple flat ASCII file with lines
+of the form "parameter=value".  Except for 'help', 'version',
+and 'config-file', any long-form option from the command line may be
+used as a parameter, and the # character introduces a comment that
+spans until the end of the line.
+
+GeneTorrent applications also read two other configuration files
+(if they exist).  The first is the file at /etc/GeneTorrent-restricted.conf.
+The options given in this file express system-wide policy and are not
+overridable by other configuration files or the command line options.
+The second is the file at /etc/GeneTorrent.conf.  The options given
+in this file function as system-wide defaults, which a user may override
+with a configuration file or command line option.  Neither configuration
+file is packaged with GeneTorrent, so by default neither is a source of
+program options.
+
+Sample GeneTorrent server configuration file:
+.nf
+
+# GeneTorrent configuration file
+log=syslog:full
+server=/cghub/data
+queue=/cghub/data/workqueues/dropzone-app04
+credential-file=/cghub/home/shared/gtorrent.pem
+security-api=https://cghub-01.ucsc.edu:20000/cghub/data/gtsession
+advertised-ip=8.29.11.197
+advertised-port=6921
+.fi
+.SH SEE ALSO
+.BR gtdownload(1),
+.BR gtserver(1),
+.BR gtupload(1).
+.SH COPYRIGHT
+Copyright \(co
+2011-2012
+Annai Systems, Inc.
+.PP
+This is free software;
+see the source for copying conditions.
+There is NO warranty;
+not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+

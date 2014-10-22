@@ -1,0 +1,91 @@
+.\" gtserver man page
+.if !\n(.g \{\
+.	if !\w|\*(lq| \{\
+.		ds lq ``
+.		if \w'\(lq' .ds lq "\(lq
+.	\}
+.	if !\w|\*(rq| \{\
+.		ds rq ''
+.		if \w'\(rq' .ds rq "\(rq
+.	\}
+.\}
+.ie t .ds Tx \s-1T\v'.4n'\h'-.1667'E\v'-.4n'\h'-.125'X\s0
+. el  .ds Tx TeX
+.de Id
+. ds Yr \\$4
+. substring Yr 0 3
+. ds Mn \\$4
+. substring Mn 5 6
+. ds Dy \\$4
+. substring Dy 8 9
+. \" ISO 8601 date, complete format, extended representation
+. ds Dt \\*(Yr-\\*(Mn-\\*(Dy
+..
+.TH gtserver 1 
+.hy 0
+.
+.SH NAME 
+gtserver \- transfer genomic data reliably across a network
+.SH SYNOPSIS
+.B gtserver 
+.I path
+.B -q
+.I work-queue
+.B -c 
+.I cred
+.B --security-api 
+.I signing-URI
+[
+.B --foreground 
+|
+.B --pidfile
+.I Pid-File
+]
+.SH DESCRIPTION
+.B GeneTorrent
+is a suite of file transfer applications designed for the optimal
+transfer of genomic data across a computer network.  File transfers
+using GeneTorrent are designed to be authenticated, secure, reliable,
+and efficient.
+.PP
+GeneTorrent has 3 applications: gtupload, gtdownload, and gtserver.
+The upload application is used to send files to the repository.
+The download application is used to retrieve files from the repository.
+The server application is used within the repository to create GeneTorrent
+server instances that deliver data to download actors.
+.PP
+This man page describes 
+.B gtserver 
+(the GeneTorrent server application).
+.SH OPTIONS
+.TP
+.BI "path"
+Required.
+.I path
+is the absolute or relative path to the directory under which the data
+files being shared are to be found.  Note that UUID is always be added
+to
+.I path\fR,\fP
+so data files will be found at 
+.I path\fR/\fPUUID\fR.\fP
+.TP
+.BI \-q " work-queue" "\fR,\fP \-\^\-queue" " work-queue"
+Required.  
+.I work-queue
+is the absolute or relative path to a directory where this server
+instance will look for .gto files to begin sharing content.
+.TP
+.BI \-\^\-security-api " signing-URI"
+Required.  
+.I signing-URI
+is a fully-qualified URI which will sign CSRs for this server instance.
+.TP
+.BI \-\^\-foreground
+Optional.  Run in the foreground (do not deamonize).
+.TP
+.BI \-\^\-pidfile " Pid-File"
+Optional (unless
+.I \-\^\-foreground
+is present, then ignored).
+.I Pid-File
+Full path and filename of the process's pid.  Default value:  /var/run/gtserver/gtserver.pid  This must match program_PIDFILE value in the init.d script of used if the init.d script is to be used.

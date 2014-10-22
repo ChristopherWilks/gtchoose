@@ -1,0 +1,75 @@
+.\" gtupload man page
+.if !\n(.g \{\
+.	if !\w|\*(lq| \{\
+.		ds lq ``
+.		if \w'\(lq' .ds lq "\(lq
+.	\}
+.	if !\w|\*(rq| \{\
+.		ds rq ''
+.		if \w'\(rq' .ds rq "\(rq
+.	\}
+.\}
+.ie t .ds Tx \s-1T\v'.4n'\h'-.1667'E\v'-.4n'\h'-.125'X\s0
+. el  .ds Tx TeX
+.de Id
+. ds Yr \\$4
+. substring Yr 0 3
+. ds Mn \\$4
+. substring Mn 5 6
+. ds Dy \\$4
+. substring Dy 8 9
+. \" ISO 8601 date, complete format, extended representation
+. ds Dt \\*(Yr-\\*(Mn-\\*(Dy
+..
+.TH gtupload 1 
+.hy 0
+.
+.SH NAME 
+gtupload \- transfer genomic data reliably across a network
+.SH SYNOPSIS
+.B gtupload 
+.I manifest-file
+.B -c 
+.I cred
+.B \fR[\fP -p 
+.IR path\  ]
+.SH DESCRIPTION
+.B GeneTorrent
+is a suite of file transfer applications designed for the optimal
+transfer of genomic data across a computer network.  File transfers
+using GeneTorrent are designed to be authenticated, secure, reliable,
+and efficient.
+.PP
+GeneTorrent has 3 applications: gtupload, gtdownload, and gtserver.
+The upload application is used to send files to the repository.
+The download application is used to retrieve files from the repository.
+The server application is used within the repository to create GeneTorrent
+server instances that deliver data to download actors.
+.PP
+This man page describes
+.B gtupload
+(the GeneTorrent upload application).
+.SH OPTIONS
+.TP
+.BI "manifest-file"
+Required.  The absolute or relative path to the
+manifest-file, which must follow the format specified by Annai
+Systems. This file lists all the data files that are to be transferred
+to the repository.
+.TP
+.BI \-p " path" "\fR,\fP \-\^\-path" " path"
+The absolute or relative path to the root directory for upload.  Note
+that files to be uploaded must always be in a subdirectory named after
+the analysis UUID for the submission.  If the -p option is present,
+.I path
+can point to the UUID directory, or to the directory that contains the
+UUID directory.  The current directory will be used by default.
+.TP
+.BI \-r " max-rate" "\fR,\fP \-\^\-rate-limit" " max-rate"
+The maximum data rate to upload, specified in MB/sec (megabytes per second).
+.TP
+.BI \-\^\-upload-gto-path " path"
+The absolute or relative path to a directory in which the GTO file and
+other temporary files can be created.  The GTO file is created as a
+part of the upload process by GeneTorrent.  By default, it will be
+stored in the UUID directory for the submission.

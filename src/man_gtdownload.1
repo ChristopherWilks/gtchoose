@@ -1,0 +1,105 @@
+.\" gtdownload man page
+.if !\n(.g \{\
+.	if !\w|\*(lq| \{\
+.		ds lq ``
+.		if \w'\(lq' .ds lq "\(lq
+.	\}
+.	if !\w|\*(rq| \{\
+.		ds rq ''
+.		if \w'\(rq' .ds rq "\(rq
+.	\}
+.\}
+.ie t .ds Tx \s-1T\v'.4n'\h'-.1667'E\v'-.4n'\h'-.125'X\s0
+. el  .ds Tx TeX
+.de Id
+. ds Yr \\$4
+. substring Yr 0 3
+. ds Mn \\$4
+. substring Mn 5 6
+. ds Dy \\$4
+. substring Dy 8 9
+. \" ISO 8601 date, complete format, extended representation
+. ds Dt \\*(Yr-\\*(Mn-\\*(Dy
+..
+.TH gtdownload 1 
+.hy 0
+.
+.SH NAME 
+gtdownload \- transfer genomic data reliably across a network
+.SH SYNOPSIS
+.B gtdownload 
+.B -c 
+.I cred
+.I \fR<\fP URL \fR|\fP UUID \fR|\fP .xml \fR|\fP .gto \fR|\fP .tsv \fR|\fP .flat \fR>\fP
+.B \fR[\fP -p 
+.I path
+.RB ] 
+.SH DESCRIPTION
+.B GeneTorrent
+is a suite of file transfer applications designed for the optimal
+transfer of genomic data across a computer network.  File transfers
+using GeneTorrent are designed to be authenticated, secure, reliable,
+and efficient.
+.PP
+GeneTorrent has three applications: gtupload, gtdownload, and gtserver.
+The gtupload application is used to send files to the repository.
+The gtdownload application is used to retrieve files from the repository.
+The gtserver application is used within the repository to create GeneTorrent
+server instances that deliver data to download actors.
+.PP
+This man page describes 
+.B gtdownload 
+(the GeneTorrent download application).
+.SH OPTIONS
+.TP
+.BI "URL \fR|\fP UUID \fR|\fP .xml \fR|\fP .gto \fR|\fP .tsv \fR|\fP .flat"
+Required.
+.I content-specifier
+should be one of the following:
+.IP
+URL: A fully-qualified URL of a GTO for that represents the set of files to be downloaded from
+the repository. There typically is one GTO per analysis, and the the file set represented by that
+GTO contains primarily the .bam file along with any auxiliary files such as .BAI files.
+.IP
+UUID: A UUID of the analysis, i.e. file set to be downloaded. In
+this case, GeneTorrent will construct a URL referring to the default
+repository, currently https://cghub.ucsc.edu/.  
+.IP
+\[char46]xml: The path of an XML file containing a cgquery result set referring to the file sets to be 
+downloaded.
+.IP
+\[char46]gto: The path to a GTO file representing the file set to be downloaded. This
+eliminates all calls to the GeneTorrent Executive at the repository and causes a
+download to begin immediately.  In this case you do not need to supply access
+credentials using the -c option.
+.IP
+\[char46]tsv: the path to a tab-separated file whose 'analysis_id' column contains the UUIDs of the
+file sets to be downloaded
+.IP
+\[char46]flat: the path to a file containing UUIDs or URLs of the file sets to be downloaded
+.TP
+.BI \-p " path" "\fR,\fP \-\^\-path" " path"
+The absolute or relative path to save data files in the gto file(s).
+UUID is part of the gto and will always be added to
+.I path
+, so after download data files will be found at
+.I path\fR/\fPUUID\fR.\fP
+The current directory will be used by default.
+.TP
+.BI \-\^\-max-children " max-children"
+The maximum number of parallel children that should be spawned to
+perform the download.  By default up to 8 children are used, but this
+number may be adjusted.  For maximum performance, the recommended
+number of children is between C/2 and C, if C is the number of cores
+on your machine.
+.TP
+.BI \-r " max-rate" "\fR,\fP \-\^\-rate-limit" " max-rate"
+The maximum data rate to download, specified in MB/sec (megabytes per second).
+.TP
+.BI \-\^\-security-api " signing-URI"
+.I signing-URI
+is a fully-qualified URI which will sign CSRs for this download instance.
+.TP
+.BI \-\^\-webservices-url " webservices-URI"
+.I webservices-URI
+is a fully-qualified URI which is used to access the respository Web Services (WSI).

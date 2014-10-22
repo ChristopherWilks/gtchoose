@@ -1,0 +1,147 @@
+/* src/gtDefs.h.  Generated from gtDefs.h.in by configure.  */
+/* -*- mode: C++; c-basic-offset: 3; tab-width: 3; -*-
+ *
+ * Copyright (c) 2011, Annai Systems, Inc.
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE
+ *
+ * Created under contract by Cardinal Peak, LLC.   www.cardinalpeak.com
+ */
+
+/*
+ * gtDefs.h
+ *
+ *  Created on: Aug 15, 2011
+ *      Author: donavan
+ */
+
+#ifndef GTDEFS_H_
+#define GTDEFS_H_
+
+// some constants
+const std::string SHORT_DESCRIPTION = "GeneTorrent: Genomic Data Transfer Tool";
+const std::string GTO_FILE_BUILDING_EXTENSION = ".gto-build";
+const std::string GTO_FILE_DOWNLOAD_EXTENSION = "~";
+const std::string GTO_ERROR_DOWNLOAD_EXTENSION = "-error";
+const std::string GTO_FILE_EXTENSION = ".gto";
+const std::string RESUME_FILE_EXT = ".resume";
+const std::string PROGRESS_FILE_EXT = ".progress";
+
+#ifndef GT_RESOURCEDIR
+const std::string RESOURCE_DIR_DEFAULT = "/usr/share/GeneTorrent";
+#else
+const std::string RESOURCE_DIR_DEFAULT = GT_RESOURCEDIR;
+#endif
+
+const std::string DEFAULT_PID_FILE = "/var/run/gtserver/gtserver.pid";
+const std::string DH_PARAMS_FILE = "dhparam.pem";
+const std::string PYTHON_TRUE = "TRUE";
+const std::string SERVER_STOP_FILE = "GeneTorrent.stop";
+
+const int NO_EXIT = 0;
+const int ERROR_NO_EXIT = -1;
+const long UNKNOWN_HTTP_HEADER_CODE = 987654321;     // arbitrary number
+const int ALERT_CHECK_PAUSE_INTERVAL = 50000;        // in useconds
+const int COMMAND_LINE_OR_CONFIG_FILE_ERROR = 9;
+const int HTTP_ERROR_EXIT_CODE = 10;
+
+const int64_t DISK_FREE_WARN_LEVEL = 1000 * 1000 * 1000;  // 1 GB, aka 10^9
+
+const unsigned long PROCESS_MIN = 4096; // preferred minimum user NPROC soft limit for download mode
+
+// move to future config file
+const std::string GT_CERT_SIGN_TAIL = "gtsession";
+const std::string DEFAULT_TRACKER_URL = "https://tracker.example.com/announce";
+
+// Download only and deprecated
+const std::string DEFAULT_REPO_HOSTNAME = "cghub.ucsc.edu";
+const std::string REPO_WSI_BASE_URL = "https://"+ DEFAULT_REPO_HOSTNAME + "/cghub/data/analysis/download";      // Override with command line argument or config file setting 'webservices-url'
+
+// Work around to disable SSL compression on Centos 5.5
+#ifndef SSL_OP_NO_COMPRESSION
+#define SSL_OP_NO_COMPRESSION   0x00020000L
+#endif
+
+// OpenSSL private key and CSR defaults
+const int RSA_KEY_SIZE = 1024;
+const int SSL_ERROR_EXIT_CODE = 237;
+const int CSR_ATTRIBUTE_ENTRY_COUNT = 7;
+
+// Command Line Option defines
+const char SPACE = ' ';
+
+// This Macro is to be used to display output on the user's screen (in conjunction with the -v option)
+// Since logs can be sent to stderr or stdout at the direction of the user, using this macro avoids
+// send output messages to log files where users may not see them.
+// messStream is one or more stream manipulters
+#define screenOutput(messStream, verbosity)                                                  \
+{                                                                                            \
+   std::ostringstream message_mi_1;                                                          \
+   message_mi_1 << messStream;                                                               \
+   std::string timeStamp = "";                                                               \
+                                                                                             \
+   if (message_mi_1.str().size())                                                            \
+   {                                                                                         \
+      if (global_verbosity > verbosity)                                                      \
+      {                                                                                      \
+         if (_addTimestamps)                                                                 \
+         {                                                                                   \
+            timeStamp = makeTimeStamp() + + " ";                                             \
+         }                                                                                   \
+                                                                                             \
+         if (_logToStdErr || global_gtAgentMode)                                             \
+         {                                                                                   \
+            std::cout << timeStamp << message_mi_1.str() << std::endl;                       \
+            std::cout.flush ();                                                              \
+         }                                                                                   \
+         else                                                                                \
+         {                                                                                   \
+            std::cerr << timeStamp << message_mi_1.str() << std::endl;                       \
+            std::cerr.flush();                                                               \
+         }                                                                                   \
+      }                                                                                      \
+                                                                                             \
+      if (GlobalLog && (GlobalLog->get_fd() == -1 || GlobalLog->get_fd() > STDERR_FILENO))   \
+      {                                                                                      \
+         Log (PRIORITY_NORMAL, "%s", message_mi_1.str().c_str());                            \
+      }                                                                                      \
+   }                                                                                         \
+}
+
+#define screenOutputNoNewLine(messStream, verbosity)  \
+{                                                     \
+   if (global_verbosity > verbosity)                  \
+   {                                                  \
+      if (_logToStdErr)                               \
+      {                                               \
+         std::cout << messStream;                     \
+      }                                               \
+      else                                            \
+      {                                               \
+         std::cerr << messStream;                     \
+      }                                               \
+   }                                                  \
+}
+
+#endif /* GTDEFS_H_ */
