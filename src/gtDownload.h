@@ -40,6 +40,25 @@
 #include "gtBase.h"
 #include "gtDownloadOpts.h"
 
+//include samtools source for gtsnarf
+#include "sam.h"
+#include "bam.h"
+#include "bgzf.h"
+#include "bam_endian.h"
+
+//these structs were in bam_index.c but no in any samtools header, annoying
+typedef struct {
+	uint64_t u, v;
+} pair64_t;
+
+struct __bam_iter_t {
+        int from_first; // read from the first record; no random access
+        int tid, beg, end, n_off, i, finished;
+        uint64_t curr_off;
+        pair64_t *off;
+};
+
+
 class gtDownload : public gtBase
 {
    public:
@@ -78,9 +97,11 @@ class gtDownload : public gtBase
       void performTorrentDownloadsByGTO (int64_t &totalBytes, int &totalFiles, int &totalGtos);
       void performTorrentDownloadsByURI (int64_t &totalBytes, int &totalFiles, int &totalGtos);
       void get_initial_pieces(std::string torrentName, std::vector<int> &pieceList);
+      void get_pieces(std::string torrentName, std::vector<int> &pieceList);
       void performTorrentPieceDownloadsByURI (int64_t &totalBytes, int &totalFiles, int &totalGtos);
       int downloadChild(int childID, int totalChildren, std::string torrentName, FILE *fd, std::string tempDlPath);
       int downloadPiecesChild(int childID, int totalChildren, std::string torrentName, FILE *fd, std::string tempDlPath, std::vector<int> &piece_list);
+      pair64_t *get_chunk_coordinates(const bam_index_t *idx, int tid, int beg, int end, int *cnt_off);
       int64_t getFreeDiskSpace ();
       bool downloadGTO (std::string uri, std::string fileName, std::string torrUUID, int retryCount, std::string destinationPath, bool exitOnMvError);
 };

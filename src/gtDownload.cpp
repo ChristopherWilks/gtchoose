@@ -71,11 +71,6 @@
 
 #include <curl/curl.h>
 
-//include samtools source for gtsnarf
-#include "sam.h"
-#include "bam.h"
-#include "bgzf.h"
-
 #include "gtBase.h"
 #include "stringTokenizer.h"
 #include "gtDefs.h"
@@ -671,12 +666,12 @@ std::string gtDownload::spawnDownloadPiecesChildren (childMap &pidList, std::str
       // The final directory exists, presume the download is complete.
       return "";  // redmine #3095
    }
-
+/*
    if (statDirectory (tempDownloadPath) == 0)
    {
       _resumedDownload = true;
    }
-
+*/
    while (childID <= childrenThisGTO)      // Spawn Children that will download this GTO
    {
       if (pipe (pipes[childID]) < 0)
@@ -696,6 +691,7 @@ std::string gtDownload::spawnDownloadPiecesChildren (childMap &pidList, std::str
 
          FILE *ipcFD =  fdopen (pipes[childID][1], "w");
 
+         screenOutput ("About to spawn childreni #2...", VERBOSE_1);
          downloadPiecesChild (childID, childrenThisGTO, torrentName, ipcFD, tempDownloadPath, piece_list);
          // Should never return from downloadChild().
       }
@@ -774,6 +770,8 @@ void gtDownload::performSingleTorrentPieceDownload (std::string torrentName, int
 
    childMap pidList;
 
+   screenOutput ("About to spawn children...", VERBOSE_1);
+
    std::string tempStoragePath;
    if(piece_list.size() == 0)
    {
@@ -792,6 +790,8 @@ void gtDownload::performSingleTorrentPieceDownload (std::string torrentName, int
    time_t lastActivity = timeout_update ();  // initialize last activity time for inactvitiy timeout
 
    bool displayProgress = true;
+
+   screenOutput ("after spawning children...", VERBOSE_1);
 
    if (_resumedDownload)
    {
@@ -920,7 +920,8 @@ void gtDownload::performSingleTorrentPieceDownload (std::string torrentName, int
 
    // If we make it here, the transfer completed (or was previously completed), 
    // if applicable, move it from the temp download area into the permanent storage area
-
+   // CWILKS for gtchoose: don't want to move it yet
+/*
    if (tempStoragePath.size() > 0)
    {
       std::string sourcePath = tempStoragePath + "/" + uuid;
@@ -938,7 +939,7 @@ void gtDownload::performSingleTorrentPieceDownload (std::string torrentName, int
          gtError ("Unable to remove " + tempStoragePath, 88, ERRNO_ERROR, errno);
       }
    }
-
+*/
    totalBytes += totalDataDownloaded;
    totalFiles += numFilesDownloaded;
 }
@@ -1019,8 +1020,7 @@ void gtDownload::get_initial_pieces(std::string torrentName, std::vector<int> &p
    num_pieces_for_bai += 2;
    pieceList.push_back(0); 
    pieceList.push_back(1);
-   //int start_piece = npieces-num_pieces_for_bai;
-   int start_piece = 1500;
+   int start_piece = npieces-num_pieces_for_bai;
    std::ostringstream message;
    message << "nfiles: " << nfiles << " plength: " << plength << " npieces: " << npieces << " fsize " << fsize << " num_pieces_for_bai " << num_pieces_for_bai << " start_piece " << start_piece << "\n";
    screenOutput (message.str(), VERBOSE_1);
@@ -1031,6 +1031,100 @@ void gtDownload::get_initial_pieces(std::string torrentName, std::vector<int> &p
    }
    return;
 }
+
+//from bam_index.c, wasnt in the header though, so just put it here for now
+pair64_t *gtDownload::get_chunk_coordinates(const bam_index_t *idx, int tid, int beg, int end, int *cnt_off)
+{ // for pysam compatibility
+	bam_iter_t iter;
+	pair64_t *off;
+	iter = bam_iter_query(idx, tid, beg, end);
+	off = iter->off; *cnt_off = iter->n_off;
+	free(iter);
+	return off;
+}
+
+/*determine which piece(s) to get for the actual ranges submitted*/
+void gtDownload::get_pieces(std::string torrentName, std::vector<int> &piece_list)
+{
+   libtorrent::error_code torrentError;
+
+   libtorrent::torrent_info* tinfo = new libtorrent::torrent_info (torrentName, torrentError);
+   int nfiles = tinfo->num_files();
+   int plength = tinfo->piece_length();
+   int npieces = tinfo->num_pieces();
+   //need to get the name of the BAI file
+   std::string uuid = torrentName;
+   uuid = uuid.substr (0, uuid.rfind ('.'));
+   uuid = getFileName (uuid); 
+   
+   libtorrent::file_entry baif = tinfo->file_at(1);
+   std::string baipath = baif.path;
+   
+   libtorrent::file_entry bamf = tinfo->file_at(0);
+   std::string bampath = bamf.path;
+   std::string bampath_partial;
+   std::string baipath_partial;
+   bampath_partial = uuid + ".partial/" + bamf.path;
+   baipath_partial = uuid + ".partial/" + baif.path;
+   std::ostringstream message;
+   message << "baipath " << baipath << " bampath " << bampath_partial << "\n"; 
+   screenOutput (message.str(), VERBOSE_1);
+  
+   samfile_t *samf = samopen(bampath_partial.c_str(),"rb",0);
+ 
+   std::vector<std::string> ranges;
+   ranges.push_back(std::string("2:1-100000"));	
+   ranges.push_back(std::string("3:1-100000"));	
+   ranges.push_back(std::string("X:1-100000"));	
+   //load bam index for quick choosing
+   bam_index_t *sidx = bam_index_load(bampath_partial.c_str());
+
+   piece_list.push_back(0); 
+   //now walk the range list
+   for(std::vector<std::string>::iterator i = ranges.begin(); i != ranges.end(); ++i)
+   {
+     std::string range = *i;
+     int start,end,ref;
+     ref=1;
+     start=0;
+     end=0xff;
+     //get the sam encoded version of the ranges
+     bam_parse_region(samf->header,range.c_str(),&ref,&start,&end);
+     int count_offsets;
+     pair64_t *chunks = get_chunk_coordinates(sidx,ref,start,end,&count_offsets);
+     int j = 0;
+     uint64_t bstart = 0;
+     uint64_t bend = 0;
+     for(j=0; j < count_offsets; j++)
+     {
+        if(j == 0)
+        {
+          bstart = chunks[j].u >> 16; 
+        }
+        bend = chunks[j].v >> 16; 
+     }
+     double start_piece = floor(bstart / plength) - 1;
+     double end_piece = ceil(bend / plength) - 1;
+     std::ostringstream message1;
+     message1 << range << " start chunk " << bstart << " " << start_piece << " end chunk " << bend << " " << end_piece << "\n"; 
+     screenOutput (message1.str(), VERBOSE_1);
+     for(int z = start_piece-1; z <= end_piece+1; z++)
+     {
+       if(z > 0 && z < npieces-3)
+       		piece_list.push_back(z);
+     }
+   }
+   piece_list.push_back(npieces-3); 
+   piece_list.push_back(npieces-2); 
+   piece_list.push_back(npieces-1);
+   unlink(bampath_partial.c_str());
+   unlink(baipath_partial.c_str());
+   std::string sub_dir = uuid + ".partial/" + uuid;
+   unlink(sub_dir.c_str());
+   std::string top_dir = uuid + ".partial";
+   unlink(top_dir.c_str());
+}
+  
 
 void gtDownload::performTorrentPieceDownloadsByURI (int64_t &totalBytes, int &totalFiles, int &totalGtos)
 {
@@ -1053,7 +1147,14 @@ void gtDownload::performTorrentPieceDownloadsByURI (int64_t &totalBytes, int &to
       get_initial_pieces(torrentName,init_piece_list);
       int old__maxChildren = _maxChildren;
       _maxChildren  = 1;
+      //download the BAI file, header, and footer of the BAM
       performSingleTorrentPieceDownload (torrentName, totalBytes, totalFiles, init_piece_list);
+      //restore max children to what it was
+      //_maxChildren  = old__maxChildren;
+      //now determine the actual data piece list
+      std::vector<int> piece_list;
+      get_pieces(torrentName, piece_list);
+      performSingleTorrentPieceDownload (torrentName, totalBytes, totalFiles, piece_list);
       totalGtos++;
 
       iter++;
@@ -1145,6 +1246,7 @@ std::cerr << "setting name to: " << (torrentParams.ti->name() + TEMP_DOWNLOAD_LO
    torrentParams.ti->remap_files (fileStorageDest);
 
 */
+   screenOutput ("divying pieces...", VERBOSE_1);
 
    libtorrent::torrent_handle torrentHandle = torrentSession->add_torrent (torrentParams, torrentError);
 
